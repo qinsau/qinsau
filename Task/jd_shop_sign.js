@@ -3,14 +3,14 @@
 ============Quantumultx===============
 [task_local]
 #店铺签到
-0 0 * * * https://raw.githubusercontent.com/Misaka09982/AutoSignMachine/master/DIY_shopsign.js, tag=店铺签到, enabled=true
+0 0 * * * https://raw.githubusercontent.com/Aaron-lv/JavaScript/master/Task/jd_shop_sign.js, tag=店铺签到, enabled=true
 ===========Loon============
 [Script]
-cron "0 1 * * *" script-path=https://raw.githubusercontent.com/Misaka09982/AutoSignMachine/master/DIY_shopsign.js,tag=店铺签到
+cron "0 0 * * *" script-path=https://raw.githubusercontent.com/Aaron-lv/JavaScript/master/Task/jd_shop_sign.js,tag=店铺签到
 ============Surge=============
-店铺签到 = type=cron,cronexp="0 1 * * *",wake-system=1,timeout=3600,script-path=https://raw.githubusercontent.com/Misaka09982/AutoSignMachine/master/DIY_shopsign.js
+店铺签到 = type=cron,cronexp="0 0 * * *",wake-system=1,timeout=3600,script-path=https://raw.githubusercontent.com/Aaron-lv/JavaScript/master/Task/jd_shop_sign.js
 ===========小火箭========
-店铺签到 = type=cron,script-path=https://raw.githubusercontent.com/Misaka09982/AutoSignMachine/master/DIY_shopsign.jss, cronexpr="0 1 * * *", timeout=3600, enable=true
+店铺签到 = type=cron,script-path=https://raw.githubusercontent.com/Aaron-lv/JavaScript/master/Task/jd_shop_sign.jss, cronexpr="0 0 * * *", timeout=3600, enable=true
 */
 
 const $ = new Env('店铺签到');
@@ -19,7 +19,7 @@ const notify = $.isNode() ? require('./sendNotify') : '';
 //Node.js用户请在jdCookie.js处填写京东ck;
 const jdCookieNode = $.isNode() ? require('./jdCookie.js') : '';
 //IOS等用户直接用NobyDa的jd cookie
-let cookiesArr = [], cookie = '', message;
+let cookiesArr = [], cookie = '', allMessage = '', message;
 const JD_API_HOST = 'https://api.m.jd.com/api?appid=interCenter_shopSign';
 
 let activityId=''
@@ -27,7 +27,20 @@ let vender=''
 let num=0
 let shopname=''
 const token=[
-
+  '1DF4C2DC35E720E4FA3695967A9948DB', //每日20豆，连签7天50豆，5.1-5.30
+  'DA8B428E61DD3AC9F6968F7B28723E28', //每日5豆，连签7天20豆，5.1-5.20
+  '4C8769E87394365A4A8CC7697160DA37', //每日3豆，连签到7天20豆，5.1-5.30
+  '292C2D06BC8E14F32293DBA4DB4D17C6', //每日2豆，连签10天50豆，5.1-5.30
+  '3754B9A3985AC58B8845601D12E2186B', //每日2豆，连签30天100豆，5.1-5.30
+  'E75C142403C71C7A8A4CB8BCF761CFB9', //每日2豆，5.1-5.30
+  '44C403560C3D1E58833F8B8B5B55EF09', //每日1豆，连签1天2豆、3天10豆、7天20豆、11天35豆、15天50豆，5.1-5.15
+  '220B4DECF95E554DB51B5FF1EEF14883', //每日1豆，连签1天1豆、2天1豆、3天2豆、4天2豆、5天3豆，5.1-5.20
+  'B975F8FDEE069EC17B3595323C7F23B5', //每日1豆，4.29-5.28
+  'F4965FF96007AB8E6D98DAEF64737C7A', //连签7天100豆，4.16-5.15
+  'D7A184D175171CC3DD95AC7C548E15F4', //连签7天30豆，4.16-5.14
+  '15C8B2E87BED4A3738EAD5831013AD10', //连签1天2豆、2天3豆、3天4豆、4天5豆、5天6豆，5.1-5.30
+  'A64EB78DA688DB2B31F78EAEFACA869A', //连签3天10豆，5.1-5.30
+  '5D7953C421BFE98E6945BB056B50B148', //连签3天3豆，连签5天5豆，5.1-5.7
 ]
 
 if ($.isNode()) {
@@ -53,7 +66,7 @@ if ($.isNode()) {
   for (let i = 0; i < cookiesArr.length; i++) {
     if (cookiesArr[i]) {
       cookie = cookiesArr[i];
-      $.UserName = decodeURIComponent(cookie.match(/pt_pin=(.+?);/) && cookie.match(/pt_pin=(.+?);/)[1])
+      $.UserName = decodeURIComponent(cookie.match(/pt_pin=([^; ]+)(?=;?)/) && cookie.match(/pt_pin=([^; ]+)(?=;?)/)[1])
       $.index = i + 1;
       $.isLogin = true;
       $.nickName = '';
@@ -62,7 +75,6 @@ if ($.isNode()) {
       console.log(`\n******开始【京东账号${$.index}】${$.nickName || $.UserName}*********\n`);
       if (!$.isLogin) {
         $.msg($.name, `【提示】cookie已失效`, `京东账号${$.index} ${$.nickName || $.UserName}\n请重新登录获取\nhttps://bean.m.jd.com/bean/signIndex.action`, {"open-url": "https://bean.m.jd.com/bean/signIndex.action"});
-
         if ($.isNode()) {
           await notify.sendNotify(`${$.name}cookie已失效 - ${$.UserName}`, `京东账号${$.index} ${$.UserName}\n请重新登录获取cookie`);
         }
@@ -71,6 +83,9 @@ if ($.isNode()) {
       await dpqd()
       await showMsg()
     }
+  }
+  if ($.isNode() && allMessage) {
+    await notify.sendNotify(`${$.name}`, `${allMessage}`)
   }
 })()
     .catch((e) => {
@@ -199,8 +214,8 @@ function getActivityInfo(token,venderId) {
             const discount=data.data.continuePrizeRuleList[i].prizeList[0].discount
             mes += "签到"+level+"天,获得"+discount+'豆'
           }
-          //console.log(message+mes+'\n')
-          //message += mes+'\n'
+          // console.log(message+mes+'\n')
+          // message += mes+'\n'
         }
       } catch (e) {
         $.logErr(e, resp);
@@ -280,7 +295,7 @@ function taskUrl(token,venderId) {
 async function showMsg() {
   if ($.isNode()) {
     $.msg($.name, '', `【京东账号${$.index}】${$.nickName}\n${message}`);
-    await notify.sendNotify(`${$.name} - 账号${$.index} - ${$.nickName}`, `【京东账号${$.index}】${$.nickName}\n${message}`);
+    allMessage += `【京东账号${$.index}】${$.nickName}\n${message}${$.index !== cookiesArr.length ? '\n\n' : ''}`;
   }
 }
 
@@ -311,7 +326,11 @@ function TotalBean() {
               $.isLogin = false; //cookie过期
               return
             }
-            $.nickName = data['base'].nickname;
+            if (data['retcode'] === 0) {
+              $.nickName = data['base'].nickname;
+            } else {
+              $.nickName = $.UserName
+            }
           } else {
             console.log(`京东服务器返回空数据`)
           }
